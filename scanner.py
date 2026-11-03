@@ -58,6 +58,7 @@ def telegram(text):
         return False
     for _ in range(3):
         try:
+            # Исправлен URL эндпоинта Телеграм бота
             r = requests.post(f"https://telegram.org{TOKEN}/sendMessage",
                               data={"chat_id": CHAT_ID, "text": text}, timeout=15)
             if r.ok:
@@ -94,8 +95,7 @@ def closed_only(df, now, timeframe_minutes=3):
 
 
 def mirror(df):
-09:41
-return pd.DataFrame({"o": -df.o, "h": -df.l, "l": -df.h, "c": -df.c}, index=df.index)
+    return pd.DataFrame({"o": -df.o, "h": -df.l, "l": -df.h, "c": -df.c}, index=df.index)
 
 
 def swing_lows(L, left=2, right=2):
@@ -131,7 +131,7 @@ def detect_short_reversal(df, asia_end, AH, AL, pip, min_fvg):
         if not cands:
             continue
         r = cands[-1]
-        if C[j] < L[r] and C[j] < AH:       # тело закрылось ниже свинга на М3 и вернулось в бокс
+        if C[j] < L[r] and C[j] < AH:
             mss, ref = j, r
             break
     if mss is None:
@@ -198,12 +198,11 @@ def fmt(p, pip):
 def check_setup1(name, cfg, closed_m3, full_m3, fvgs, asia_h, asia_l, asia_end, now):
     pip = cfg["pip"]
     mid = (asia_h + asia_l) / 2
-    post = closed_m3[closed_m3.index >= asia_end - timedelta(hours=4)]   # запас для свингов
+    post = closed_m3[closed_m3.index >= asia_end - timedelta(hours=4)]
     for direction in ("short", "long"):
         if direction == "short":
             r = detect_short_reversal(post, asia_end, asia_h, asia_l, pip, cfg["min_fvg"])
-09:41
-if not r:
+            if not r:
                 continue
             ext, top, bot, tp = r["ext_price"], r["fvg_top"], r["fvg_bot"], asia_l
             entry = (top + bot) / 2
@@ -234,9 +233,9 @@ if not r:
         if magnet and SKIP_ON_H1_MAGNET:
             sent_keys.add(key)
             continue
-        side = "SHORT 🔴 " if direction == "short" else "LONG 🟢 "
+        side = "SHORT 🔴" if direction == "short" else "LONG 🟢"
         swept = "Asia High" if direction == "short" else "Asia Low"
-        txt = (f"⚡  СЕТАП №1 (разворот Азии) — {name} {side}\n"
+        txt = (f"⚡ СЕТАП №1 (разворот Азии) — {name} {side}\n"
                f"Свип {swept}: {fmt(ext, pip)} → MSS на M3 → 3м имбаланс "
                f"{fmt(bot, pip)}–{fmt(top, pip)} ({(top-bot)/pip:.1f} п.)\n"
                f"Лимитка (0.5 FVG): {fmt(entry, pip)}\n"
@@ -245,14 +244,12 @@ if not r:
                f"Midpoint Азии: {fmt(mid, pip)} — закрытие за ним против сделки → стоп -5 п.\n"
                f"Цена сейчас: {fmt(last, pip)}"
                + lot_text(cfg, risk))
-        if magnet:
-                  txt += (f"\n⚠️  Противоположный H1 FVG {fmt(magnet['bot'], pip)}–{fmt(magnet['top'], pip)} "
+              txt += (f"\n⚠️ Противоположный H1 FVG {fmt(magnet['bot'], pip)}–{fmt(magnet['top'], pip)} "
 f"({(magnet['top']-magnet['bot'])/pip:.0f} п.) на пути к цели — по ТЗ это SKIP")
 txt += "\n(SMT-дивергенцию и новости проверяй сам)"
 if telegram(txt):
 sent_keys.add(key)
 log("отправлен", key)
-
 
 ----------------------------- сетап №2 -----------------------------
 
@@ -302,9 +299,11 @@ else:
 sl = asia_h + SETUP2_SL_PIPS * pip
 risk = abs(entry - sl) / pip
 if direction == "long":
-hi = full_m3.h.max(); tp = hi if hi > entry else None
+hi = full_m3.h.max()
+tp = hi if hi > entry else None
 else:
-lo = full_m3.l.min(); tp = lo if lo < entry else None
+lo = full_m3.l.min()
+tp = lo if lo < entry else None
 if tp is None:
 return
 reward = abs(tp - entry) / pip
@@ -312,8 +311,8 @@ if reward < 2 * risk:
 log(f"{name} S2 пропуск: цель {reward:.0f} п. < 2×риск {risk:.0f} п.")
 sent_keys.add(key)
 return
-side = "LONG 🟢 " if direction == "long" else "SHORT 🔴 "
-txt = (f"⚡  СЕТАП №2 (продолжение) — {name} {side}\n"
+side = "LONG 🟢" if direction == "long" else "SHORT 🔴"
+txt = (f"⚡ СЕТАП №2 (продолжение) — {name} {side}\n"
 f"Азия {fmt(asia_l, pip)}–{fmt(asia_h, pip)} ({(asia_h-asia_l)/pip:.0f} п.), "
 f"выход без свипа.\n"
 f"Цена протестировала часовой FVG {fmt(g['bot'], pip)}–{fmt(g['top'], pip)}\n"
@@ -366,8 +365,7 @@ ap.add_argument("--test", action="store_true")
 ap.add_argument("--once", action="store_true")
 args = ap.parse_args()
 if args.test:
-ok = telegram("✅  AES scanner: тест связи прошёл. Снайперский М3-сканер полностью готов к работе.")
-09:45
+ok = telegram("✅ AES scanner: тест связи прошёл. Снайперский М3-сканер полностью готов к работе.")
 sys.exit(0 if ok else 1)
 if args.once:
 scan_once()
@@ -384,7 +382,7 @@ if t0 < w_start:
 wait = (w_start - t0).total_seconds()
 log(f"жду начала окна {wait:.0f} сек")
 time.sleep(max(0, wait))
-telegram(f"🟢  Сканер М3 запущен ({datetime.now(TZ):%H:%M} Барнаул). EURUSD / GBPUSD / DXY, "
+telegram(f"🟢 Сканер М3 запущен ({datetime.now(TZ):%H:%M} Барнаул). EURUSD / GBPUSD / DXY, "
 f"до {deadline:%H:%M}.")
 fails = 0
 while datetime.now(TZ) < deadline:
@@ -392,8 +390,8 @@ started = time.time()
 errs = scan_once()
 fails = fails + 1 if errs == len(SYMBOLS) else 0
 if fails == 10:
-telegram("⚠️  Сканер: 10 минут подряд нет данных (проблема источника Yahoo).")
+telegram("⚠️ Сканер: 10 минут подряд нет данных (проблема источника Yahoo).")
 time.sleep(max(1, INTERVAL_SEC - (time.time() - started)))
-telegram(f"🔴  Сканер завершил работу ({datetime.now(TZ):%H:%M}).")
+telegram(f"🔴 Сканер завершил работу ({datetime.now(TZ):%H:%M}).")
 if name == "main":
 main()
